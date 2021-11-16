@@ -80,7 +80,9 @@ $ podman ps --format "{{.Names}} {{.Status}}" | grep ceilometer
 ceilometer_agent_compute Up 2 hours ago
 ```
 
-The metrics are being sent from ceilometer to a remote defined in `/var/lib/config-data/puppet-generated/ceilometer/etc/ceilometer/pipeline.yaml`, which may look similar to the following file
+The metrics are being sent from ceilometer to a remote defined in 
+`/var/lib/config-data/puppet-generated/ceilometer/etc/ceilometer/pipeline.yaml`
+, which may look similar to the following file
 
 ```
 ---
@@ -97,4 +99,41 @@ sinks:
           - notifier://172.17.1.40:5666/?driver=amqp&topic=metering
 
 ```
-In this case, data is sent to both STF and Gnocchi. Next step is to check if there are any errors happening
+In this case, data is sent to both STF and Gnocchi. Next step is to check 
+if there are any errors happening. On controllers and computes, ceilometer 
+logs are found in `/var/log/containers/ceilometer/`. 
+
+The `agent-notification.log` shows logs from publishing data, as well as
+errors if sending out metrics or logs fails for some reason.
+
+If there are any errors in the log file, it is likely that metrics are not
+being delivered to the remote.
+
+```
+2021-11-16 07:01:07.063 16 ERROR oslo_messaging.notify.messaging   File "/usr/lib/python3.6/site-packages/oslo_messaging/transport.py", line 136, in _send_notification
+2021-11-16 07:01:07.063 16 ERROR oslo_messaging.notify.messaging     retry=retry)
+2021-11-16 07:01:07.063 16 ERROR oslo_messaging.notify.messaging   File "/usr/lib/python3.6/site-packages/oslo_messaging/_drivers/impl_amqp1.py", line 295, in wrap
+2021-11-16 07:01:07.063 16 ERROR oslo_messaging.notify.messaging     return func(self, *args, **kws)
+2021-11-16 07:01:07.063 16 ERROR oslo_messaging.notify.messaging   File "/usr/lib/python3.6/site-packages/oslo_messaging/_drivers/impl_amqp1.py", line 397, in send_notification
+2021-11-16 07:01:07.063 16 ERROR oslo_messaging.notify.messaging     raise rc
+2021-11-16 07:01:07.063 16 ERROR oslo_messaging.notify.messaging oslo_messaging.exceptions.MessageDeliveryFailure: Notify message sent to <Target topic=event.sample> failed: timed out
+```
+
+In this case, it failes to send messages to the STF instance. The following
+example shows the gnocchi api not responding or not being accessible
+
+```
+2021-11-16 10:38:07.707 16 ERROR ceilometer.publisher.gnocchi [-] <html><body><h1>503 Service Unavailable</h1>
+No server is available to handle this request.
+</body></html>
+ (HTTP 503): gnocchiclient.exceptions.ClientException: <html><body><h1>503 Service Unavailable</h1>
+```
+
+For more gnocchi debugging, see the gnocchi section.
+
+### Gnocchi
+
+Gnocchi sits on controller nodes and consists of three separate containers,
+gnocchi_metricd, gnocchi_statsd, and gnocchi_api. The latter is for the
+interaction with the outside world, such as ingesting metrics or returning
+measurements.
