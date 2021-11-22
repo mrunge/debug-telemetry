@@ -6,14 +6,14 @@
 
 We'll do the following steps:
 
-1. check if metrics are getting in 
-2. if not, check if ceilometer is running
-3. check if gnocchi is running
-4. 
+1. [check if metrics are getting in](#metric_get_in)
+2. [if not, check if ceilometer is running](#ceilometer_running)
+3. [check if gnocchi is running](#gnocchi_running)
+4. [query gnocchi for metrics](#query_gnocchi)
 
 
 
-### Check that metrics are getting in
+### Check that metrics are getting in {#metric_get_in}
 
 `openstack server list`
 
@@ -64,7 +64,7 @@ This list shows the metrics associated with the instance.
 
 You are done here.
 
-### Checking if ceilometer is running
+### Checking if ceilometer is running {#ceilometer_running}
 
 ```
 $ ssh controller-0 -l root
@@ -131,7 +131,7 @@ No server is available to handle this request.
 
 For more gnocchi debugging, see the gnocchi section.
 
-### Gnocchi
+### Gnocchi {#gnocchi_running}
 
 Gnocchi sits on controller nodes and consists of three separate containers,
 gnocchi_metricd, gnocchi_statsd, and gnocchi_api. The latter is for the
@@ -148,7 +148,7 @@ In the case from above (ceilometer section), where ceilometer could not
 send metrics to gnocchi, one would also observe log output for the
 gnocchi API.
 
-### Retrieving metrics from Gnocchi
+### Retrieving metrics from Gnocchi {#query_gnocchi}
 
 For a starter, let's see which resources there are.
 
@@ -230,7 +230,17 @@ openstack metric measures show --start 2021-11-18T17:00:00 \
 ```
 
 This shows, the data is available with granularity 3600, 60 and 1 sec. The memory usage does
-not change over the time, that's why the values don't change.
+not change over the time, that's why the values don't change. Please
+note, if you'd be asking for values with the granularity of 300,
+    the result will be empty
+```
+$ openstack metric measures show --start 2021-11-18T17:00:00 \
+              --stop 2021-11-18T17:05:00 \
+              --aggregation mean \
+              --granularity 300 
+              b768ec46-5e49-4d9a-b00d-004f610c152d
+Aggregation method 'mean' at granularity '300.0' for metric b768ec46-5e49-4d9a-b00d-004f610c152d does not exist (HTTP 404)
+```
 
 More info about the metric can be actually listed by using
 
