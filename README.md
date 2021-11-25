@@ -237,7 +237,7 @@ note, if you'd be asking for values with the granularity of 300,
 $ openstack metric measures show --start 2021-11-18T17:00:00 \
               --stop 2021-11-18T17:05:00 \
               --aggregation mean \
-              --granularity 300 
+              --granularity 300
               b768ec46-5e49-4d9a-b00d-004f610c152d
 Aggregation method 'mean' at granularity '300.0' for metric b768ec46-5e49-4d9a-b00d-004f610c152d does not exist (HTTP 404)
 ```
@@ -295,3 +295,67 @@ openstack metric archive-policy show ceilometer-high-rate --max-width 75
 
 That means, in this case, the aggregation methods one could use for querying
 the metrics are just mean and rate:mean. Other methods could include min or max.
+
+### Alarming {#alarms}
+
+Alarms can be retrieved by issuing
+
+```
+$ openstack alarm list
+
+
+```
+
+To create an alarm, for example based on disk.ephemeral.size, one would use something
+like
+
+```
+openstack alarm create --alarm-action 'log://' \
+              --ok-action 'log://' \
+              --comparison-operator ge \
+              --evaluation-periods 1 \
+              --granularity 60 \
+              --aggregation-method mean \
+              --metric disk.ephemeral.size \
+              --resource-id f0a62c20-2304-4c8c-aaf5-f5bc9d385b5f \
+              --name ephemeral \
+              -t gnocchi_resources_threshold \
+              --resource-type instance \
+              --threshold 1
+
++---------------------------+----------------------------------------+
+| Field                     | Value                                  |
++---------------------------+----------------------------------------+
+| aggregation_method        | mean                                   |
+| alarm_actions             | ['log:']                               |
+| alarm_id                  | 994a1710-98e8-495f-89b5-f14349575c96   |
+| comparison_operator       | ge                                     |
+| description               | gnocchi_resources_threshold alarm rule |
+| enabled                   | True                                   |
+| evaluation_periods        | 1                                      |
+| granularity               | 60                                     |
+| insufficient_data_actions | []                                     |
+| metric                    | disk.ephemeral.size                    |
+| name                      | ephemeral                              |
+| ok_actions                | ['log:']                               |
+| project_id                | 8d077dbea6034e5aa45c0146d1feac5f       |
+| repeat_actions            | False                                  |
+| resource_id               | f0a62c20-2304-4c8c-aaf5-f5bc9d385b5f   |
+| resource_type             | instance                               |
+| severity                  | low                                    |
+| state                     | insufficient data                      |
+| state_reason              | Not evaluated yet                      |
+| state_timestamp           | 2021-11-22T10:16:15.250720             |
+| threshold                 | 1.0                                    |
+| time_constraints          | []                                     |
+| timestamp                 | 2021-11-22T10:16:15.250720             |
+| type                      | gnocchi_resources_threshold            |
+| user_id                   | 65bfeb6cc8ec4df4a3d53550f7e99a5a       |
++---------------------------+----------------------------------------+
+```
+
+The state here `insufficient data` states, the data gathered or
+stored is not sufficient to compare against. There is also a state
+reason given, in this case `Not evaluated yet`, which gives an explanation.
+
+Another valid reason could be `No datapoint for granularity 60`. 
